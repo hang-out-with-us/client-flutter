@@ -1,6 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 
 class Post extends StatefulWidget {
@@ -14,6 +19,34 @@ class _PostState extends State<Post> {
   final ImagePicker _picker = ImagePicker();
   String content = "";
   List<XFile?> images = [null, null, null];
+  final _storage = const FlutterSecureStorage();
+
+  _request() async {
+    var request =
+        http.MultipartRequest("POST", Uri.parse(dotenv.env['POST_URL']!));
+    String? token = await _storage.read(key: "token");
+    request.files.add(http.MultipartFile.fromString(
+        'data',
+        jsonEncode({
+          "content": content,
+        }),
+        contentType: MediaType('application', 'json')));
+    for (int i = 0; i < images.length; i++) {
+      if (images[i] != null) {
+        request.files
+            .add(await http.MultipartFile.fromPath('files', images[i]!.path));
+      }
+    }
+    request.headers['Authorization'] = "Bearer " + token!;
+    request.send().then((response) {
+      if (response.statusCode == 200) {
+        print("Uploaded!");
+      } else {
+        print(response.statusCode);
+        print(response.reasonPhrase);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +74,7 @@ class _PostState extends State<Post> {
                   }),
             ),
             OutlinedButton(
-              onPressed: () async {},
+              onPressed: _request,
               child: Text("등록"),
             )
           ],
@@ -67,9 +100,12 @@ class _PostState extends State<Post> {
             borderRadius: BorderRadius.circular(10)),
         child: images[index] == null
             ? Icon(Icons.add)
-            : Image.file(
-                File(images[index]!.path),
-                fit: BoxFit.cover,
+            : ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.file(
+                  File(images[index]!.path),
+                  fit: BoxFit.cover,
+                ),
               ),
       ),
     );
