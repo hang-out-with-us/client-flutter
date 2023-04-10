@@ -66,7 +66,6 @@ class _CardSwipeState extends State<CardSwipe> {
             if (index == contents.length - 2) {
               _getList();
             }
-            print("index is = " + index.toString());
             return Card(
               data: contents[index],
             );

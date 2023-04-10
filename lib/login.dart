@@ -5,7 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
-import 'home.dart'; // home.dart 파일 import
+import 'home.dart';
+import 'signup.dart';
 
 class Login extends StatelessWidget {
   final _storage = const FlutterSecureStorage();
@@ -49,7 +50,12 @@ class Login extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text("계정이 없으신가요?"),
-              TextButton(onPressed: () => {}, child: Text("회원가입"))
+              TextButton(
+                  onPressed: () => {
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (context) => Signup()))
+                      },
+                  child: Text("회원가입"))
             ],
           ),
         ]),
