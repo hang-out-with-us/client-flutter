@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 
@@ -21,13 +22,54 @@ class _SignupState extends State<Signup> {
   //20에서 40까지
   List<int> list = List.generate(21, (index) => index + 20);
 
+  bool isEmail(String email) {
+    // 정규식 패턴
+    String pattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
+    // 정규식 객체 생성
+    RegExp regex = new RegExp(pattern);
+    // 검사 결과 반환
+    return regex.hasMatch(email);
+  }
+
   _signup() async {
+    if (email == "" || password == "" || name == "") {
+      Fluttertoast.showToast(
+        msg: "모든 항목을 입력해주세요",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+      );
+      return;
+    }
+    if (!isEmail(email)) {
+      Fluttertoast.showToast(
+        msg: "이메일 형식이 올바르지 않습니다",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+      );
+      return;
+    }
+    if (password.length < 8) {
+      Fluttertoast.showToast(
+        msg: "비밀번호는 8자 이상이어야 합니다",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+      );
+      return;
+    }
     Response res = await http.post(Uri.parse(dotenv.env['SIGNUP_URL']!),
         headers: {"Content-Type": "application/json"},
         body: json.encode(
             {'name': name, 'email': email, 'password': password, 'age': age}));
-    print(res.body);
-    print(res.statusCode);
+    if (res.statusCode == 200) {
+      Navigator.pop(context);
+    }
+    if (res.statusCode == 500) {
+      Fluttertoast.showToast(
+        msg: "이미 존재하는 이메일입니다",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+      );
+    }
   }
 
   @override
