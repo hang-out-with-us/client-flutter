@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 
 class CardSwipe extends StatefulWidget {
@@ -46,6 +47,30 @@ class _CardSwipeState extends State<CardSwipe> {
     }
   }
 
+  void _swipe(int index, AppinioSwiperDirection direction) async {
+    int id = contents[index]["id"];
+    String? token = await _storage.read(key: "token");
+    if (direction == AppinioSwiperDirection.left) {
+      Fluttertoast.showToast(
+        msg: "싫어요",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+      );
+    } else if (direction == AppinioSwiperDirection.right) {
+      http.Response res = await http.post(
+          Uri.parse(dotenv.env["MEMBER_LIKE"]! + id.toString()),
+          headers: {"Authorization": "Bearer " + token!});
+
+      if (res.statusCode == 200) {
+        Fluttertoast.showToast(
+          msg: "좋아요",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+        );
+      }
+    }
+  }
+
   @override
   void initState() {
     _getList();
@@ -61,6 +86,7 @@ class _CardSwipeState extends State<CardSwipe> {
           onEnd: () async {
             await _getList();
           },
+          onSwipe: _swipe,
           cardsCount: contents.length,
           cardsBuilder: (BuildContext context, int index) {
             if (index == contents.length - 2) {
