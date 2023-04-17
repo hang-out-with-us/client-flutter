@@ -41,6 +41,7 @@ class Login extends StatelessWidget {
                 if (res.statusCode == 200) {
                   Map decode = json.decode(res.body);
                   await _storage.write(key: "token", value: decode['token']);
+                  await _storage.write(key: "email", value: email);
                   Navigator.pushReplacement(
                       context, MaterialPageRoute(builder: (context) => Home()));
                 }

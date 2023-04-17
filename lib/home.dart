@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hang_out_with_us/card.dart';
 import 'package:hang_out_with_us/post.dart';
 
+import 'chatRoomList.dart';
+
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
 
@@ -17,9 +19,7 @@ class _HomeState extends State<Home> {
   static final List<Widget> _widgetOptions = <Widget>[
     // SwipeScreen(),
     CardSwipe(),
-    Text(
-      'Slot 1',
-    ),
+    ChatList(),
     Text(
       'Slot 2',
     ),
