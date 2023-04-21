@@ -147,12 +147,15 @@ class _ImageSwipeState extends State<ImageSwipe> {
             }
           },
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.network(
-              dotenv.env['IMAGE_URL']! + filenames[_currentIndex as int],
-              fit: BoxFit.cover,
-            ),
-          ),
+              borderRadius: BorderRadius.circular(20),
+              child: FadeInImage(
+                placeholder: AssetImage('assets/Loading_icon.gif'),
+                // 로딩 중일 때 표시할 이미지
+                image: NetworkImage(
+                    dotenv.env['IMAGE_URL']! + filenames[_currentIndex as int]),
+                // 로드할 이미지
+                fit: BoxFit.cover,
+              )),
         ),
         Positioned(
           top: 10,
@@ -181,40 +184,5 @@ class _ImageSwipeState extends State<ImageSwipe> {
         )
       ],
     );
-  }
-}
-
-class _ProgressBarPainter extends CustomPainter {
-  final int count;
-  final int currentIndex;
-
-  _ProgressBarPainter(this.count, this.currentIndex);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double width = size.width;
-    final double barWidth = width / count;
-    final double barHeight = size.height;
-
-    final Paint paint = Paint()..color = Colors.white.withOpacity(0.5);
-
-    for (int i = 0; i < count; i++) {
-      canvas.drawRect(
-        Rect.fromLTWH(i * barWidth, 0, barWidth, barHeight),
-        paint,
-      );
-    }
-
-    paint.color = Colors.white;
-
-    canvas.drawRect(
-      Rect.fromLTWH(currentIndex * barWidth, 0, barWidth, barHeight),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
   }
 }
