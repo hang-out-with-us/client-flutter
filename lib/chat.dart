@@ -5,6 +5,8 @@ import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart';
+import 'package:path/path.dart' as path;
+import 'package:sqflite/sqflite.dart';
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_config.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
@@ -29,6 +31,7 @@ class _ChatPageState extends State<ChatPage> {
   List<types.Message> _messages = [];
   late types.User user;
   String email = "";
+  var _database;
 
   void _getMessages() async {
     String? token = await _storage.read(key: "token");
@@ -73,6 +76,7 @@ class _ChatPageState extends State<ChatPage> {
     setState(() {
       _messages.insert(0, message);
     });
+    _insertMessage(message);
   }
 
   _getUser() async {
@@ -104,8 +108,54 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
+  //save chat in database using sqflite
+
+  _openDatabase() async {
+    var database = await openDatabase(
+      path.join(await getDatabasesPath(), 'chat.db'),
+      onCreate: (db, version) {
+        return db.execute(
+          "CREATE TABLE chat(id INTEGER PRIMARY KEY, content TEXT, chatRoomId INTEGER, sender TEXT, createdDate TEXT)",
+        );
+      },
+      version: 1,
+    );
+    setState(() {
+      _database = database;
+    });
+    _readMessage();
+  }
+
+  _insertMessage(types.TextMessage message) async {
+    final Map<String, dynamic> messageDto = {
+      'content': message.text,
+      'chatRoomId': roomId,
+      'sender': message.author.id,
+      'createdDate': message.createdAt,
+    };
+    await _database.insert(
+      'chat',
+      messageDto,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  _readMessage() async {
+    final List<Map<String, dynamic>> messages = await _database
+        .query('chat', where: "chatRoomId = ?", whereArgs: [roomId]);
+    for (var message in messages) {
+      types.TextMessage parsedMessage = types.TextMessage(
+          author: types.User(id: message['sender'] as String),
+          text: message['content'] as String,
+          id: message['id'].toString(),
+          createdAt: int.parse(message['createdDate']));
+      _messages.insert(0, parsedMessage);
+    }
+  }
+
   @override
   void initState() {
+    _openDatabase();
     _getMessages();
     _connect();
     _getUser();
