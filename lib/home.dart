@@ -58,8 +58,7 @@ class _HomeState extends State<Home> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "home"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.access_time), label: "slot1"),
+          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: "chat"),
           BottomNavigationBarItem(icon: Icon(Icons.access_time), label: "slot2")
         ],
         currentIndex: _selectedIndex,
