@@ -37,11 +37,14 @@ class _ChatPageState extends State<ChatPage> {
     String? token = await _storage.read(key: "token");
     Response res = await get(
       Uri.parse("http://localhost:8080/chat/" + roomId.toString()),
-      headers: {"Authorization": "Bearer " + token!},
+      headers: {
+        "Authorization": "Bearer " + token!,
+        "Content-Type": "application/json; charset=utf-8"
+      },
     );
     if (res.statusCode == 200) {
       print(res.body);
-      List messages = jsonDecode(res.body);
+      List messages = jsonDecode(utf8.decode(res.bodyBytes));
       for (var message in messages) {
         _parseMessage(message);
       }
