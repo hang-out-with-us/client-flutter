@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'home.dart';
 import 'login.dart';
 
 void main() async {
@@ -9,9 +11,15 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  var _storage = const FlutterSecureStorage();
+
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(home: Login());
+    if (_storage.read(key: "token") != null) {
+      return const MaterialApp(home: Home());
+    } else {
+      return const MaterialApp(home: Login());
+    }
   }
 }
 

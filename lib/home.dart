@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hang_out_with_us/card.dart';
+import 'package:hang_out_with_us/mypage.dart';
 import 'package:hang_out_with_us/post.dart';
 
 import 'chatRoomList.dart';
@@ -20,9 +21,7 @@ class _HomeState extends State<Home> {
     // SwipeScreen(),
     CardSwipe(),
     ChatList(),
-    Text(
-      'Slot 2',
-    ),
+    MyPage()
   ];
 
   void _onItemTapped(int index) {
