@@ -27,6 +27,7 @@ class Login extends StatelessWidget {
             onChanged: (text) => {email = text},
           ),
           TextField(
+              obscureText: true,
               decoration: const InputDecoration(hintText: "비밀번호"),
               onChanged: (text) => {pwd = text}),
           OutlinedButton(
