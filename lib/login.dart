@@ -1,9 +1,8 @@
-import 'dart:convert';
-
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
+import 'package:hang_out_with_us/httpInterceptor.dart';
 
 import 'home.dart';
 import 'signup.dart';
@@ -17,6 +16,8 @@ class Login extends StatelessWidget {
   Widget build(BuildContext context) {
     String email = "";
     String pwd = "";
+    final dio = Dio();
+    dio.interceptors.add(HttpInterceptor());
 
     return Scaffold(
       body: Padding(
@@ -33,16 +34,19 @@ class Login extends StatelessWidget {
           OutlinedButton(
               onPressed: () async {
                 Map data = {"email": email, "password": pwd};
-                var req = json.encode(data);
-                http.Response res = await http.post(
-                  Uri.parse(dotenv.env['LOGIN_URL']!),
-                  headers: {"Content-Type": "application/json"},
-                  body: req,
-                );
+                var res = await dio.post(dotenv.env['LOGIN_URL']!,
+                    data: data,
+                    options: Options(
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                    ));
                 if (res.statusCode == 200) {
-                  Map decode = json.decode(res.body);
-                  await _storage.write(key: "token", value: decode['token']);
+                  var body = res.data;
+                  await _storage.write(key: "token", value: body['token']);
                   await _storage.write(key: "email", value: email);
+                  await _storage.write(
+                      key: "refreshToken", value: body['refreshToken']);
                   Navigator.pushReplacement(
                       context, MaterialPageRoute(builder: (context) => Home()));
                 }

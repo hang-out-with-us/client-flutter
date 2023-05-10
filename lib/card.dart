@@ -1,12 +1,12 @@
-import 'dart:convert';
-
 import 'package:appinio_swiper/appinio_swiper.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart' as http;
+
+import 'httpInterceptor.dart';
 
 class CardSwipe extends StatefulWidget {
   const CardSwipe({Key? key}) : super(key: key);
@@ -17,27 +17,27 @@ class CardSwipe extends StatefulWidget {
 
 class _CardSwipeState extends State<CardSwipe> {
   final AppinioSwiperController controller = AppinioSwiperController();
+  final Dio dio;
   List contents = [];
   List images = [];
   List<Card> cardList = [];
   final _storage = const FlutterSecureStorage();
   int page = 0;
 
+  _CardSwipeState() : dio = Dio()..interceptors.add(HttpInterceptor());
+
   Future<void> _getList() async {
     try {
-      String? token = await _storage.read(key: "token");
       Map body;
-      http.Response res = await http.get(
-        Uri.parse(dotenv.env['MEMBER_RECOMMEND']! +
+      Response res = await dio.get(
+        (dotenv.env['MEMBER_RECOMMEND']! +
             "?page=" +
             page.toString() +
             "&size=5"),
-        headers: {"Authorization": "Bearer " + token!},
       );
       if (res.statusCode == 200) {
-        body = json.decode(res.body);
         setState(() {
-          contents += body['content'];
+          contents += res.data['content'];
           page++;
         });
         print(contents[0]['post']['filenames']);
@@ -49,7 +49,6 @@ class _CardSwipeState extends State<CardSwipe> {
 
   void _swipe(int index, AppinioSwiperDirection direction) async {
     int id = contents[index]["id"];
-    String? token = await _storage.read(key: "token");
     if (direction == AppinioSwiperDirection.left) {
       Fluttertoast.showToast(
         msg: "싫어요",
@@ -57,10 +56,7 @@ class _CardSwipeState extends State<CardSwipe> {
         gravity: ToastGravity.BOTTOM,
       );
     } else if (direction == AppinioSwiperDirection.right) {
-      http.Response res = await http.post(
-          Uri.parse(dotenv.env["MEMBER_LIKE"]! + id.toString()),
-          headers: {"Authorization": "Bearer " + token!});
-
+      Response res = await dio.post(dotenv.env["MEMBER_LIKE"]! + id.toString());
       if (res.statusCode == 200) {
         Fluttertoast.showToast(
           msg: "좋아요",

@@ -7,27 +7,34 @@ import 'login.dart';
 
 void main() async {
   await dotenv.load(fileName: '.env');
-  runApp(MyApp());
+  bool isTokenExist = await _tokenCheck();
+  runApp(MyApp(isTokenExist: isTokenExist));
 }
 
-class MyApp extends StatelessWidget {
+_tokenCheck() async {
   var _storage = const FlutterSecureStorage();
-
-  @override
-  Widget build(BuildContext context) {
-    if (_storage.read(key: "token") != null) {
-      return const MaterialApp(home: Home());
-    } else {
-      return const MaterialApp(home: Login());
-    }
+  if (await _storage.read(key: "token") != null) {
+    return true;
+  } else {
+    return false;
   }
 }
 
-class PostList extends StatelessWidget {
-  const PostList({Key? key}) : super(key: key);
+class MyApp extends StatelessWidget {
+  final bool isTokenExist;
+
+  const MyApp({super.key, required this.isTokenExist});
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    if (isTokenExist) {
+      return const MaterialApp(
+        home: Home(),
+      );
+    } else {
+      return const MaterialApp(
+        home: Login(),
+      );
+    }
   }
 }

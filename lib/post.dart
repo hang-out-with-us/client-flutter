@@ -1,12 +1,12 @@
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
+
+import 'httpInterceptor.dart';
 
 class Post extends StatefulWidget {
   const Post({Key? key}) : super(key: key);
@@ -20,32 +20,47 @@ class _PostState extends State<Post> {
   String content = "";
   List<XFile?> images = [null, null, null];
   final _storage = const FlutterSecureStorage();
+  final Dio dio;
+
+  _PostState() : dio = Dio()..interceptors.add(HttpInterceptor());
 
   _request() async {
-    var request =
-        http.MultipartRequest("POST", Uri.parse(dotenv.env['POST_URL']!));
-    String? token = await _storage.read(key: "token");
-    request.files.add(http.MultipartFile.fromString(
-        'data',
-        jsonEncode({
-          "content": content,
-        }),
-        contentType: MediaType('application', 'json')));
-    for (int i = 0; i < images.length; i++) {
-      if (images[i] != null) {
-        request.files
-            .add(await http.MultipartFile.fromPath('files', images[i]!.path));
-      }
-    }
-    request.headers['Authorization'] = "Bearer " + token!;
-    request.send().then((response) {
-      if (response.statusCode == 200) {
-        print("Uploaded!");
-      } else {
-        print(response.statusCode);
-        print(response.reasonPhrase);
-      }
+    var formData = FormData.fromMap({
+      "data": {"content": content},
+      "files": images
+          .map((e) => e == null
+              ? null
+              : MultipartFile.fromBytes(File(e.path).readAsBytesSync(),
+                  filename: e.path.split("/").last))
+          .toList()
     });
+    Response res = await dio.post(
+      dotenv.env['POST_URL']!,
+      data: formData,
+    );
+    // var request = http.MultipartRequest("POST", Uri.parse(dotenv.env['POST_URL']!));
+    // String? token = await _storage.read(key: "token");
+    // request.files.add(http.MultipartFile.fromString(
+    //     'data',
+    //     jsonEncode({
+    //       "content": content,
+    //     }),
+    //     contentType: MediaType('application', 'json')));
+    // for (int i = 0; i < images.length; i++) {
+    //   if (images[i] != null) {
+    //     request.files
+    //         .add(await http.MultipartFile.fromPath('files', images[i]!.path));
+    //   }
+    // }
+    // request.headers['Authorization'] = "Bearer " + token!;
+    // request.send().then((response) {
+    //   if (response.statusCode == 200) {
+    //     print("Uploaded!");
+    //   } else {
+    //     print(response.statusCode);
+    //     print(response.reasonPhrase);
+    //   }
+    // });
   }
 
   @override

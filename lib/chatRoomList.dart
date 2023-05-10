@@ -1,10 +1,10 @@
-import 'dart:convert';
-
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart';
 
 import 'chat.dart';
+import 'httpInterceptor.dart';
 
 class ChatList extends StatefulWidget {
   const ChatList({Key? key}) : super(key: key);
@@ -16,17 +16,18 @@ class ChatList extends StatefulWidget {
 class _ChatListState extends State<ChatList> {
   FlutterSecureStorage _storage = const FlutterSecureStorage();
   List rooms = [];
+  final dio;
+
+  _ChatListState() : dio = Dio()..interceptors.add(HttpInterceptor());
 
   _getChatRooms() async {
-    String? token = await _storage.read(key: "token");
-    Response res = await get(
-      Uri.parse("http://localhost:8080/chat/rooms"),
-      headers: {"Authorization": "Bearer " + token!},
+    Response res = await dio.get(
+      dotenv.env["CHAT_ROOM_LIST"]!,
     );
     if (res.statusCode == 200) {
-      print(res.body);
+      print(res.data);
       setState(() {
-        rooms = jsonDecode(res.body);
+        rooms = res.data;
       });
     }
   }

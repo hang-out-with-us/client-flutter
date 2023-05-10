@@ -1,10 +1,12 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart';
+import 'package:hang_out_with_us/httpInterceptor.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
 import 'package:stomp_dart_client/stomp.dart';
@@ -13,7 +15,7 @@ import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:uuid/uuid.dart';
 
 class ChatPage extends StatefulWidget {
-  final roomId;
+  final int roomId;
 
   const ChatPage({Key? key, required this.roomId}) : super(key: key);
 
@@ -22,9 +24,11 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final roomId;
+  final int roomId;
+  final Dio dio;
 
-  _ChatPageState({required this.roomId});
+  _ChatPageState({required this.roomId})
+      : dio = Dio()..interceptors.add(HttpInterceptor());
 
   final _storage = const FlutterSecureStorage();
   StompClient? stompClient;
@@ -34,17 +38,12 @@ class _ChatPageState extends State<ChatPage> {
   var _database;
 
   void _getMessages() async {
-    String? token = await _storage.read(key: "token");
-    Response res = await get(
-      Uri.parse("http://localhost:8080/chat/" + roomId.toString()),
-      headers: {
-        "Authorization": "Bearer " + token!,
-        "Content-Type": "application/json; charset=utf-8"
-      },
+    Response res = await dio.get(
+      dotenv.env['GET_MESSAGES_URL']! + roomId.toString(),
     );
     if (res.statusCode == 200) {
-      print(res.body);
-      List messages = jsonDecode(utf8.decode(res.bodyBytes));
+      print(res.data);
+      List messages = res.data;
       for (var message in messages) {
         _parseMessage(message);
       }
@@ -89,13 +88,21 @@ class _ChatPageState extends State<ChatPage> {
 
   _connect() async {
     String? token = await _storage.read(key: "token");
+    String? refreshToken = await _storage.read(key: "refreshToken");
     stompClient = StompClient(
         config: StompConfig.SockJS(
-            url: 'http://localhost:8080/ws',
-            onConnect: _onConnect,
-            onWebSocketError: (dynamic error) => print(error.toString()),
-            stompConnectHeaders: {"Authorization": "Bearer " + token!},
-            webSocketConnectHeaders: {"Authorization": "Bearer " + token!}));
+      url: dotenv.env['STOMP_CONNECT_URL']!,
+      onConnect: _onConnect,
+      onWebSocketError: (dynamic error) => print(error.toString()),
+      stompConnectHeaders: {
+        "Authorization": "Bearer " + token!,
+        "refreshToken": refreshToken!
+      },
+      webSocketConnectHeaders: {
+        "Authorization": "Bearer " + token!,
+        "refreshToken": refreshToken!
+      },
+    ));
     stompClient!.activate();
   }
 
@@ -111,7 +118,7 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  //save chat in database using sqflite
+//save chat in database using sqflite
 
   _openDatabase() async {
     var database = await openDatabase(
