@@ -44,9 +44,10 @@ dependencies:
   stomp_dart_client: ^0.4.4
   flutter_chat_ui: ^1.6.6
   uuid: ^3.0.7
-  sqflite: ^2.g2.7
+  sqflite: ^2.2.7
   path: ^1.8.2
   dio: ^5.1.2
+  jwt_decoder: ^2.0.1
 
 dev_dependencies:
   flutter_test:
@@ -96,7 +97,7 @@ flutter:
     #       - asset: fonts/TrajanPro.ttf
     #       - asset: fonts/TrajanPro_Bold.ttf
     #         weight: 700
-    #
+  #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
   assets:
