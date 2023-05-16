@@ -7,6 +7,7 @@ import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hang_out_with_us/httpInterceptor.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
 import 'package:stomp_dart_client/stomp.dart';
@@ -89,6 +90,25 @@ class _ChatPageState extends State<ChatPage> {
   _connect() async {
     String? token = await _storage.read(key: "token");
     String? refreshToken = await _storage.read(key: "refreshToken");
+
+    Map<String, dynamic> tokenDecoded = JwtDecoder.decode(token!);
+    Map<String, dynamic> refreshTokenDecoded = JwtDecoder.decode(refreshToken!);
+
+    if (tokenDecoded["exp"] < DateTime.now().millisecondsSinceEpoch / 1000) {
+      if (refreshTokenDecoded["exp"] <
+          DateTime.now().millisecondsSinceEpoch / 1000) {
+        Navigator.pushNamed(context, '/login');
+      } else {
+        String xRefreshToken =
+            await _storage.read(key: "refreshToken") as String;
+        var res = await dio.get(dotenv.env["REFRESH_TOKEN_URL"]!,
+            options: Options(headers: {"X-Refresh-Token": xRefreshToken}));
+        var data = res.data;
+        token = data["token"];
+        refreshToken = data["refreshToken"];
+      }
+    }
+
     stompClient = StompClient(
         config: StompConfig.SockJS(
       url: dotenv.env['STOMP_CONNECT_URL']!,
