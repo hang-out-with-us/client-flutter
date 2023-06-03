@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_web_auth/flutter_web_auth.dart';
 import 'package:hang_out_with_us/httpInterceptor.dart';
 
 import 'home.dart';
@@ -18,6 +19,29 @@ class Login extends StatelessWidget {
     String pwd = "";
     final dio = Dio();
     dio.interceptors.add(HttpInterceptor());
+    final _storage = const FlutterSecureStorage();
+
+    _oauth(String provider) async {
+      var result = await FlutterWebAuth.authenticate(
+        url: dotenv.env['OAUTH_LOGIN_URL']! +
+            provider +
+            "?redirect_uri=hangoutwithus://",
+        callbackUrlScheme: 'hangoutwithus',
+      );
+      var param = Uri.parse(result).queryParameters;
+      if (param['state'] == 'error') {
+      } else if (param['state'] == 'signup_not_completed') {
+        await _storage.write(key: 'token', value: param['token']);
+        await _storage.write(key: 'refreshToken', value: param['refreshToken']);
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => SignupOauth2()));
+      } else {
+        _storage.write(key: 'token', value: param['token']);
+        _storage.write(key: 'refreshToken', value: param['refreshToken']);
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => Home()));
+      }
+    }
 
     return Scaffold(
       body: Padding(
@@ -64,6 +88,11 @@ class Login extends StatelessWidget {
                   child: Text("회원가입"))
             ],
           ),
+          OutlinedButton(
+              onPressed: () {
+                _oauth("google");
+              },
+              child: Text("구글 로그인"))
         ]),
       ),
     );

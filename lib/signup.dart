@@ -2,9 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
+
+import 'home.dart';
 
 class Signup extends StatefulWidget {
   const Signup({Key? key}) : super(key: key);
@@ -118,6 +121,78 @@ class _SignupState extends State<Signup> {
         ],
       ),
     ));
-    ;
+  }
+}
+
+class SignupOauth2 extends StatefulWidget {
+  const SignupOauth2({Key? key}) : super(key: key);
+
+  @override
+  State<SignupOauth2> createState() => _SignupOauth2State();
+}
+
+class _SignupOauth2State extends State<SignupOauth2> {
+  String nickname = "";
+  int age = 20;
+  List<int> list = List.generate(21, (index) => index + 20);
+  final _storage = FlutterSecureStorage();
+
+  _signup() async {
+    String token = await _storage.read(key: 'token') as String;
+    String refreshToken = await _storage.read(key: 'refreshToken') as String;
+    if (nickname == "") {
+      Fluttertoast.showToast(
+        msg: "닉네임을 입력해주세요",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+      );
+      return;
+    }
+    Response res = await http.put(Uri.parse(dotenv.env['MEMBER_UPDATE_URL']!),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token,
+          "RefreshToken": refreshToken
+        },
+        body: json.encode({'name': nickname, 'age': age}));
+    if (res.statusCode == 200) {
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => Home()));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: Padding(
+      padding: EdgeInsets.all(20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TextField(
+            decoration: InputDecoration(hintText: "닉네임"),
+            onChanged: (value) {
+              setState(() {
+                nickname = value;
+              });
+            },
+          ),
+          DropdownButton(
+              value: age,
+              items: list.map<DropdownMenuItem>((value) {
+                return DropdownMenuItem(
+                  value: value,
+                  child: Text(value.toString()),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  age = value;
+                });
+              }),
+          OutlinedButton(onPressed: _signup, child: Text("회원가입"))
+        ],
+      ),
+    ));
   }
 }
