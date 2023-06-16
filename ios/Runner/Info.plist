@@ -34,6 +34,10 @@
     <string>Used to capture audio for image picker plugin</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Used to demonstrate image picker plugin</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app needs access to location when open.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>This app needs access to location when in the background.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

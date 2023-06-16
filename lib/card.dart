@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:hang_out_with_us/post.dart';
 
 import 'httpInterceptor.dart';
 
@@ -24,9 +26,14 @@ class _CardSwipeState extends State<CardSwipe> {
   final _storage = const FlutterSecureStorage();
   int page = 0;
 
+  String token = "";
+  String refreshToken = "";
+
   _CardSwipeState() : dio = Dio()..interceptors.add(HttpInterceptor());
 
   Future<void> _getList() async {
+    token = await _storage.read(key: 'token') as String;
+    refreshToken = await _storage.read(key: 'refreshToken') as String;
     try {
       Map body;
       Response res = await dio.get(
@@ -42,8 +49,44 @@ class _CardSwipeState extends State<CardSwipe> {
         });
         print(contents[0]['post']['filenames']);
       }
+    } on DioError catch (e) {
+      print(e.response?.data['message']);
+      if (e.response?.data['message'] == 'POST_NOT_EXIST') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const Post()),
+        );
+      }
+
+      if (e.response?.data['message'] == 'GEOLOCATION_NOT_EXIST') {
+        await _setLocation();
+      }
+    }
+  }
+
+  _setLocation() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    double latitude;
+    double longitude;
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+
+      latitude = position.latitude;
+      longitude = position.longitude;
     } catch (e) {
       print(e);
+      return;
+    }
+    Response res = await dio.post(dotenv.env['GEOLOCATION_UPDATE_URL']!,
+        data: {"latitude": latitude, "longitude": longitude});
+    if (res.statusCode == 200) {
+      await _getList();
     }
   }
 
@@ -89,8 +132,9 @@ class _CardSwipeState extends State<CardSwipe> {
               _getList();
             }
             return Card(
-              data: contents[index],
-            );
+                data: contents[index],
+                token: token,
+                refreshToken: refreshToken);
           },
         ),
       ),
@@ -99,29 +143,50 @@ class _CardSwipeState extends State<CardSwipe> {
 }
 
 class Card extends StatelessWidget {
-  const Card({Key? key, required this.data}) : super(key: key);
+  const Card(
+      {Key? key,
+      required this.data,
+      required this.token,
+      required this.refreshToken})
+      : super(key: key);
   final Map data;
+  final String token;
+  final String refreshToken;
 
   @override
   Widget build(BuildContext context) {
-    return ImageSwipe(key: UniqueKey(), filenames: data['post']['filenames']);
+    return ImageSwipe(
+        key: UniqueKey(),
+        filenames: data['post']['filenames'],
+        token: token,
+        refreshToken: refreshToken);
   }
 }
 
 //카드 한 장 안에 여러 장의 이미지를 탭 하면 넘기는 기능
 class ImageSwipe extends StatefulWidget {
-  const ImageSwipe({Key? key, required this.filenames}) : super(key: key);
+  const ImageSwipe(
+      {Key? key,
+      required this.filenames,
+      required this.token,
+      required this.refreshToken})
+      : super(key: key);
   final List filenames;
+  final String token;
+  final String refreshToken;
 
   @override
-  State<ImageSwipe> createState() => _ImageSwipeState(filenames);
+  State<ImageSwipe> createState() =>
+      _ImageSwipeState(filenames, token, refreshToken);
 }
 
 class _ImageSwipeState extends State<ImageSwipe> {
   num _currentIndex = 0;
   List filenames;
+  String token;
+  String refreshToken;
 
-  _ImageSwipeState(this.filenames);
+  _ImageSwipeState(this.filenames, this.token, this.refreshToken);
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +213,11 @@ class _ImageSwipeState extends State<ImageSwipe> {
                 placeholder: AssetImage('assets/Loading_icon.gif'),
                 // 로딩 중일 때 표시할 이미지
                 image: NetworkImage(
-                    dotenv.env['IMAGE_URL']! + filenames[_currentIndex as int]),
+                    dotenv.env['IMAGE_URL']! + filenames[_currentIndex as int],
+                    headers: {
+                      'Authorization': "Bearer " + token,
+                      'RefreshToken': refreshToken,
+                    }),
                 // 로드할 이미지
                 fit: BoxFit.cover,
               )),
