@@ -12,7 +12,7 @@ class HttpInterceptor extends Interceptor {
     print(err.response);
     var errCode = err.response.toString();
     // access 토큰 만료 에러시 재발급 요청
-    if (errCode as String == "EXPIRED_ACCESS_TOKEN") {
+    if (errCode as String == "EXPIRED_TOKEN") {
       print("access token expired");
       _refresh();
     } else if (errCode as String == "INVALID_TOKEN") {
@@ -26,7 +26,6 @@ class HttpInterceptor extends Interceptor {
       RequestOptions options, RequestInterceptorHandler handler) async {
     String? jwt = await _storage.read(key: "token");
     String? refreshToken = await _storage.read(key: "refreshToken");
-
     //api 요청 전 토큰 상태 확인
     if (jwt != null && refreshToken != null) {
       Map<String, dynamic> jwtDecoded = JwtDecoder.decode(jwt);
@@ -56,15 +55,20 @@ class HttpInterceptor extends Interceptor {
     super.onResponse(response, handler);
   }
 
+  //토큰 재발급 요청
   _refresh() async {
     String xRefreshToken = await _storage.read(key: "refreshToken") as String;
     var res = await dio.get(dotenv.env["REFRESH_TOKEN_URL"]!,
         options: Options(headers: {"X-Refresh-Token": xRefreshToken}));
+
     var data = res.data;
     String token = data["token"];
-    String refreshToken = data["refreshToken"];
+    String? refreshToken = data["refreshToken"];
+
     await _storage.write(key: "token", value: token);
-    await _storage.write(key: "refreshToken", value: refreshToken);
+    if (refreshToken != null) {
+      await _storage.write(key: "refreshToken", value: refreshToken);
+    }
     print("refreshed");
   }
 
@@ -73,10 +77,7 @@ class HttpInterceptor extends Interceptor {
     if (token != null) {
       options.headers["Authorization"] = "Bearer " + token;
     }
-    String? refreshToken = await _storage.read(key: "refreshToken");
-    if (refreshToken != null) {
-      options.headers["RefreshToken"] = refreshToken;
-    }
+
     return options;
   }
 }
