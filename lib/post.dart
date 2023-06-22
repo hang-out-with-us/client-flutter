@@ -28,6 +28,8 @@ class _PostState extends State<Post> {
   _PostState() : dio = Dio()..interceptors.add(HttpInterceptor());
 
   _request() async {
+    await _refresh();
+
     var request =
         http.MultipartRequest("POST", Uri.parse(dotenv.env['POST_URL']!));
     String? token = await _storage.read(key: "token");
@@ -56,6 +58,22 @@ class _PostState extends State<Post> {
         print(response.reasonPhrase);
       }
     });
+  }
+
+  _refresh() async {
+    String xRefreshToken = await _storage.read(key: "refreshToken") as String;
+    var res = await dio.get(dotenv.env["REFRESH_TOKEN_URL"]!,
+        options: Options(headers: {"X-Refresh-Token": xRefreshToken}));
+
+    var data = res.data;
+    String token = data["token"];
+    String? refreshToken = data["refreshToken"];
+
+    await _storage.write(key: "token", value: token);
+    if (refreshToken != null) {
+      await _storage.write(key: "refreshToken", value: refreshToken);
+    }
+    print("refreshed");
   }
 
   @override
