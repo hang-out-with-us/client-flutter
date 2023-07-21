@@ -24,6 +24,10 @@ class HttpInterceptor extends Interceptor {
   @override
   void onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
+    if (options.path.startsWith(dotenv.env["SERVER_URL"]! + "auth/")) {
+      super.onRequest(options, handler);
+      return;
+    }
     String? jwt = await _storage.read(key: "token");
     String? refreshToken = await _storage.read(key: "refreshToken");
     //api 요청 전 토큰 상태 확인
